@@ -59,6 +59,57 @@ public class Facebook: OAuth2 {
         
         super.init(clientId: clientId, authorizationEndpoint: authorizationEndpoint, redirectEndpoint: redirectEndpoint, grantType: .Implicit)
     }
+    
+    /**
+     Handles the resulting link from the OAuth Redirect
+     
+     - parameters:
+     - url: The OAuth redirect URL
+     - callback: A callback that returns with an access token or NSError.
+     */
+    override public func linkHandler(_ url: URL, callback: @escaping ExternalLoginCallback) {
+        switch grantType {
+        case .AuthorizationCode:
+            preconditionFailure("Authorization Code Grant Type Not Supported")
+        case .Implicit:
+            // Get the access token, and check that the state is the same
+            guard let accessToken = url.fragmentDictionary["access_token"], url.fragmentAndQueryDictionary["state"] == state else {
+                /**
+                 Facebook's mobile implicit grant type returns errors as
+                 query. Don't think it's a huge issue to be liberal in looking
+                 for errors, so will check both.
+                 */
+                if let error = OAuth2Error.error(url.fragmentAndQueryDictionary) {
+                    callback(nil, nil, nil, error)
+                } else {
+                    callback(nil, nil, nil, LoginError.InternalSDKError)
+                }
+                return
+            }
+            
+            self.loadProfile(accessToken: accessToken, handler: { profile in
+                callback(accessToken, nil, profile, nil)
+            })
+        case .Custom:
+            preconditionFailure("Custom Grant Type Not Supported")
+        }
+    }
+    
+    private func loadProfile(accessToken: String, handler: @escaping ([String: Any]?) -> Void) {
+        let session = URLSession(configuration: URLSessionConfiguration.ephemeral)
+        let url = URL(string: "https://graph.facebook.com/me?fields=email,name&access_token=" + accessToken)!
+        let request = URLRequest(url: url)
+        
+        let task = session.dataTask(with: request) { (data, response, error) -> Void in
+            guard let data = data, let json = (try? JSONSerialization.jsonObject(with: data, options: [])) as? [String: Any] else {
+                handler(nil)
+                return
+            }
+            handler(json)
+        }
+        task.resume()
+        
+    }
 }
 
 /**

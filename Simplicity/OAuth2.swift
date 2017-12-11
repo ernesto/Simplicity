@@ -91,14 +91,14 @@ public class OAuth2: LoginProvider {
                  for errors, so will check both.
                  */
                 if let error = OAuth2Error.error(url.fragmentAndQueryDictionary) {
-                    callback(nil, error)
+                    callback(nil, nil, nil, error)
                 } else {
-                    callback(nil, LoginError.InternalSDKError)
+                    callback(nil, nil, nil, LoginError.InternalSDKError)
                 }
                 return
             }
             
-            callback(accessToken, nil)
+            callback(accessToken, nil, nil, nil)
         case .Custom:
             preconditionFailure("Custom Grant Type Not Supported")
         }

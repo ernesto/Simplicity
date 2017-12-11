@@ -10,7 +10,7 @@ import UIKit
 import SafariServices
 
 /// Callback handler after an external login completes.
-public typealias ExternalLoginCallback = (String?, NSError?) -> Void
+public typealias ExternalLoginCallback = (String?, String?, [String: Any]?, NSError?) -> Void
 
 /** 
  Simplicity is a framework for authenticating with external providers on iOS.
